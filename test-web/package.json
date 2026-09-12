@@ -1,0 +1,27 @@
+{
+  "name": "listen-x-web",
+  "version": "1.0.0",
+  "description": "Futuristic 320kbps Online Music Streamer & Smart Recommendation Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "music-player",
+    "jiosaavn-api",
+    "streaming",
+    "320kbps",
+    "audio",
+    "exoplayer",
+    "listen-x",
+    "bollywood",
+    "haryanvi",
+    "punjabi"
+  ],
+  "author": "Listen-X",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

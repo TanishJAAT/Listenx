@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listen-X Music Lab — Isolated Online Songs Tester</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+
+  <div class="app-container">
+    <!-- Clean Top Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">
+          <span>🎵</span>
+        </div>
+        <div>
+          <h1 class="brand-title">Listen-X <span>Stream</span></h1>
+          <p class="brand-sub">Endless High-Definition Music • 320 kbps Stream</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <button id="myTasteBtn" class="chip active-glow" title="Customize Preferred Languages & Singers">
+          ⚙️ My Taste
+        </button>
+        <button id="shuffleBtn" class="chip active-glow" title="Shuffle & Load Fresh Songs">
+          🔀 Shuffle Mix
+        </button>
+        <div class="status-badge live">
+          <span class="pulse-dot"></span>
+          <span><strong>HD 320 kbps</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Section -->
+    <section class="search-section">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search any song, artist, album (e.g. Kesariya, Lover, Masoom Sharma, Sidhu)..." autocomplete="off">
+        <button id="clearSearchBtn" class="clear-btn" style="display:none;">✕</button>
+        <button id="searchBtn" class="primary-btn">Search Songs</button>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="genre-chips">
+        <button class="chip active" data-genre="for-you" id="forYouChip">✨ Made For You</button>
+        <button class="chip" data-genre="liked" id="likedChip">❤️ Liked Songs (<span id="likedCount">0</span>)</button>
+        <button class="chip" data-genre="all">🌟 All Trending</button>
+        <button class="chip" data-genre="hindi">🇮🇳 Bollywood</button>
+        <button class="chip" data-genre="haryanvi">🚜 Haryanvi Hits</button>
+        <button class="chip" data-genre="punjabi">👳 Punjabi Hits</button>
+        <button class="chip" data-genre="arijit">🎤 Arijit Singh</button>
+        <button class="chip" data-genre="diljit">👑 Diljit Dosanjh</button>
+        <button class="chip" data-genre="romantic">💖 Romantic Mix</button>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <div class="section-header">
+        <div>
+          <h2 id="sectionTitle">🌟 Trending Hits</h2>
+          <p id="sectionSubtitle">Fetched directly from high-fidelity 320kbps CDN</p>
+        </div>
+        <div class="header-actions">
+          <span id="songsCount" class="counter-badge">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Songs Grid -->
+      <div id="songsGrid" class="songs-grid">
+        <!-- Injected via JavaScript -->
+        <div class="loader-container">
+          <div class="spinner"></div>
+          <p>Connecting to free music stream engine...</p>
+        </div>
+      </div>
+
+      <!-- Infinite Scroll Bottom Loader & Sentinel -->
+      <div id="bottomLoader" class="bottom-loader" style="display: none;">
+        <div class="spinner sm"></div>
+        <span>Scrolling down... Loading more songs (Auto Infinite Scroll)</span>
+      </div>
+      <div id="scrollSentinel" class="scroll-sentinel"></div>
+    </main>
+
+    <!-- Persistent Floating Player -->
+    <footer class="player-bar" id="playerBar">
+      <div class="player-left">
+        <div class="cover-art-container">
+          <img id="playerCover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100%25' height='100%25' fill='%231f2430'/%3E%3C/svg%3E" alt="Cover Art">
+          <div class="eq-bars" id="eqBars">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </div>
+        </div>
+        <div class="track-meta">
+          <div class="track-title" id="playerTitle">Select a track to play</div>
+          <div class="track-artist" id="playerArtist">—</div>
+        </div>
+        <button id="playerLikeBtn" class="player-like-btn" title="Like / Save to Favorites">🤍</button>
+      </div>
+
+      <div class="player-center">
+        <div class="player-controls">
+          <button id="skipBackBtn" class="control-icon-btn" title="Rewind 10s">⏪ 10s</button>
+          <button id="playPauseBtn" class="play-btn-circle" title="Play/Pause">▶</button>
+          <button id="skipForwardBtn" class="control-icon-btn" title="Forward 10s">10s ⏩</button>
+        </div>
+        <div class="timeline-container">
+          <span id="currentTime" class="time-label">0:00</span>
+          <input type="range" id="seekSlider" class="seek-slider" min="0" max="100" value="0">
+          <span id="totalDuration" class="time-label">0:00</span>
+        </div>
+      </div>
+
+      <div class="player-right">
+        <button id="smartAutoplayBtn" class="smart-toggle-btn active" title="Smart Next Song: Autoplay matching tracks">
+          🧠 Smart: ON
+        </button>
+
+        <div class="quality-selector">
+          <span class="quality-label">Bitrate:</span>
+          <select id="bitrateSelect">
+            <option value="320" selected>320 kbps (HD)</option>
+            <option value="160">160 kbps (Std)</option>
+            <option value="96">96 kbps (Low)</option>
+          </select>
+        </div>
+
+        <div class="volume-container">
+          <span id="volIcon">🔊</span>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.9">
+        </div>
+
+        <button id="downloadCurrentBtn" class="download-pill-btn" title="Direct Click to Download HD Audio">
+          ⬇ Download
+        </button>
+
+        <button id="directAudioBtn" class="icon-link-btn" title="Open direct audio stream link">
+          🔗 Stream URL
+        </button>
+      </div>
+
+      <!-- Hidden HTML5 Audio Element -->
+      <audio id="audioElement" preload="metadata"></audio>
+    </footer>
+  </div>
+
+  <!-- User Taste Preferences Onboarding Modal -->
+  <div class="modal-backdrop" id="tasteModal">
+    <div class="modal-card taste-modal-card">
+      <div class="modal-header">
+        <div>
+          <h3>🎨 Your Music Taste & Feed Personalizer</h3>
+          <p class="modal-sub">Apni pasandida languages aur singers choose karein, feed automatic customize ho jayegi</p>
+        </div>
+        <button id="closeTasteModalBtn" class="close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="pref-step">
+          <div class="step-label">1. Favourite Languages:</div>
+          <div class="pref-chips-grid" id="langChipsContainer">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <div class="pref-step" style="margin-top: 20px;">
+          <div class="step-label">2. Favourite Singers (Updates based on languages):</div>
+          <div class="pref-chips-grid" id="artistChipsContainer">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveTasteBtn" class="primary-btn">Save Preferences & Launch Feed ✨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw API Inspector Modal -->
+  <div class="modal-backdrop" id="inspectorModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔍 Song API Data Inspector (For Android App Integration)</h3>
+        <button id="closeModalBtn" class="close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-tip">
+          Ye wahi JSON data hai jo aapke Listen-X Android app me direct <code>Retrofit</code> ya <code>OkHttp</code> me parse ho sakta hai.
+        </p>
+        <pre><code id="modalJsonContent">{}</code></pre>
+        <div class="stream-tester-box">
+          <h4>Direct Audio Stream Link:</h4>
+          <input type="text" id="modalStreamUrl" readonly onclick="this.select()">
+          <button class="primary-btn sm" id="copyUrlBtn">Copy Stream URL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
