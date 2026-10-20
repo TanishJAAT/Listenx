@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Listen-X — Liquid Glass Music Player & Universal Audio Streamer</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Core Listen-X Stylesheet -->
+  <link rel="stylesheet" href="src/css/style.css" />
+</head>
+<body>
+  <!-- Ambient Liquid Canvas Background -->
+  <div class="liquid-bg-container" id="liquidBgContainer"></div>
+
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="header-brand" id="headerBrand" title="Listen-X Home">
+      <img src="assets/favicon.svg" alt="Listen-X Logo" class="brand-logo" />
+      <div class="brand-text">
+        <h1>Listen-X</h1>
+        <small>Universal Audio Streamer</small>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="headerEqBtn" title="6-Band Graphic Equalizer">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      <button class="icon-btn" id="headerSettingsBtn" title="Settings & Graphics">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-wrapper">
+    <!-- View 1: Online Discovery & Streaming -->
+    <section id="onlineViewContainer"></section>
+
+    <!-- View 2: Playlists, Library & Laptop Streamer -->
+    <section id="playlistViewContainer" class="hidden"></section>
+  </main>
+
+  <!-- Floating Navigation Island (Online & Playlists — Video omitted as requested) -->
+  <nav class="floating-nav-island" id="floatingNavIsland">
+    <button class="nav-pill-btn active" id="navTabOnline">
+      <i class="fa-solid fa-cloud"></i>
+      <span>Online</span>
+    </button>
+    <button class="nav-pill-btn" id="navTabPlaylists">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Playlists</span>
+    </button>
+  </nav>
+
+  <!-- Application Bootstrap Script -->
+  <script type="module" src="src/js/app.js"></script>
+</body>
+</html>

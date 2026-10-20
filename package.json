@@ -1,0 +1,16 @@
+{
+  "name": "listen-web",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Listen-X Futuristic Liquid Glass Music Player & Universal Audio Streamer (Web Edition)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
+  },
+  "devDependencies": {
+    "vite": "^5.4.2"
+  }
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Listen-X — Liquid Glass Music Player & Universal Audio Streamer</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon-Bo1B90u7.svg" />
+
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Core Listen-X Stylesheet -->
+  <script type="module" crossorigin src="/assets/index-B_L0Wd6v.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CLBQGw0e.css">
+</head>
+<body>
+  <!-- Ambient Liquid Canvas Background -->
+  <div class="liquid-bg-container" id="liquidBgContainer"></div>
+
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="header-brand" id="headerBrand" title="Listen-X Home">
+      <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%20fill='none'%3e%3cdefs%3e%3clinearGradient%20id='cyanPurple'%20x1='0%25'%20y1='0%25'%20x2='100%25'%20y2='100%25'%3e%3cstop%20offset='0%25'%20stop-color='%2300F0FF'%20/%3e%3cstop%20offset='50%25'%20stop-color='%238A2BE2'%20/%3e%3cstop%20offset='100%25'%20stop-color='%23FF007F'%20/%3e%3c/linearGradient%3e%3cfilter%20id='glow'%20x='-20%25'%20y='-20%25'%20width='140%25'%20height='140%25'%3e%3cfeGaussianBlur%20stdDeviation='4'%20result='blur'%20/%3e%3cfeComposite%20in='SourceGraphic'%20in2='blur'%20operator='over'%20/%3e%3c/filter%3e%3c/defs%3e%3crect%20width='100'%20height='100'%20rx='28'%20fill='%230D0E15'%20/%3e%3ccircle%20cx='50'%20cy='50'%20r='38'%20stroke='url(%23cyanPurple)'%20stroke-width='3'%20opacity='0.6'%20/%3e%3cpath%20d='M38%2030%20L38%2070%20L72%2050%20Z'%20fill='url(%23cyanPurple)'%20filter='url(%23glow)'%20/%3e%3cpath%20d='M42%2038%20L42%2062%20L62%2050%20Z'%20fill='%23FFFFFF'%20opacity='0.9'%20/%3e%3c/svg%3e" alt="Listen-X Logo" class="brand-logo" />
+      <div class="brand-text">
+        <h1>Listen-X</h1>
+        <small>Universal Audio Streamer</small>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" id="headerEqBtn" title="6-Band Graphic Equalizer">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      <button class="icon-btn" id="headerSettingsBtn" title="Settings & Graphics">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-wrapper">
+    <!-- View 1: Online Discovery & Streaming -->
+    <section id="onlineViewContainer"></section>
+
+    <!-- View 2: Playlists, Library & Laptop Streamer -->
+    <section id="playlistViewContainer" class="hidden"></section>
+  </main>
+
+  <!-- Floating Navigation Island (Online & Playlists — Video omitted as requested) -->
+  <nav class="floating-nav-island" id="floatingNavIsland">
+    <button class="nav-pill-btn active" id="navTabOnline">
+      <i class="fa-solid fa-cloud"></i>
+      <span>Online</span>
+    </button>
+    <button class="nav-pill-btn" id="navTabPlaylists">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Playlists</span>
+    </button>
+  </nav>
+
+  <!-- Application Bootstrap Script -->
+</body>
+</html>

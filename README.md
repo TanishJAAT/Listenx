@@ -1,144 +1,132 @@
-# 🎵 Listen-X Stream — Futuristic 320kbps Online Music Player & Smart Radio
+# 🎵 Listen-X Web — Futuristic Liquid Glass Music Player & Universal Audio Streamer
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-20.x-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Render-Deploy%20Ready-46E3B7?style=for-the-badge&logo=render&logoColor=black" alt="Render" />
-  <img src="https://img.shields.io/badge/Audio-320_kbps_HD-00f0ff?style=for-the-badge&logo=soundcharts&logoColor=black" alt="320kbps" />
-  <img src="https://img.shields.io/badge/Dependencies-Zero-purple?style=for-the-badge" alt="Zero Dependencies" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" />
+  <img src="assets/splash_banner.png" alt="Listen-X Banner" width="100%" />
+</p>
+
+<p align="center">
+  <b>High-Fidelity 320kbps Audio • Dynamic Liquid Glass Design System • Synced Lyrics • 6-Band Equalizer • Laptop & Cloud Streaming</b>
 </p>
 
 ---
 
 ## 🌟 Overview
 
-**Listen-X Stream** ek high-performance, lightweight aur futuristic online music streaming web player hai. Ye **80+ Million songs** (Bollywood, Punjabi, Haryanvi, Pop, Indie, International) ko **320 kbps High-Definition audio** me stream aur download karne ki facility deta hai — wo bhi **bina kisi external npm package ya paid API ke (Zero External Dependencies)**!
+**Listen-X Web** brings the full futuristic Liquid Glass music experience from the mobile app to desktop, tablet, and mobile web browsers. Engineered with pure modern web technologies (HTML5, Web Audio API, CSS3 Glassmorphism, and ES Modules), it streams high-fidelity 320kbps tracks from JioSaavn, displays real-time LRCLIB synchronized lyrics, tunes sound via a 6-band graphic DSP equalizer, and connects seamlessly to your laptop's local `D:\music` collection via `listenx_server.py`.
 
-Built with **Pure Vanilla Node.js**, **Pure JavaScript DES Decryption**, aur **Glassmorphic Cyberpunk UI**.
-
----
-
-## ✨ Features Highlight
-
-- 🎨 **Smart Taste Onboarding**:
-  - First-time user onboarding modal jisme user apni favorite languages (Hindi, Haryanvi, Punjabi, English, Bhojpuri, South) select karta hai.
-  - Languages select karte hi **favorite singers dynamic load** hote hain.
-  - Preferences `localStorage` me save ho jati hain aur home screen par **"✨ Made For You"** customized feed create karti hain.
-- 🧠 **Context-Aware Smart Autoplay (Song Radio)**:
-  - Gaana khatam hone par agla gaana usi **vibe, artist aur language** ka auto-play hota hai (e.g. Masoom Sharma ke baad Haryanvi hit, Arijit ke baad soulful romantic track).
-  - Player bar me 1-click **"🧠 Smart: ON / OFF"** toggle switch.
-- ⚡ **True 320 kbps High-Bitrate Audio**:
-  - Direct high-speed CDN audio streaming with real-time bitrate switcher (320 kbps HD / 160 kbps / 96 kbps).
-- ⬇️ **Direct 1-Click Audio Downloads**:
-  - Har song card par aur player bar me direct download button.
-  - Automatic clean filename: `[Title] - [Artist].m4a` straight to Downloads folder.
-- 📜 **Endless Infinite Scroll**:
-  - Scroll down karte hi agle 24-24 tracks background me smoothly append ho jate hain bina current audio playback roke.
-- 🔀 **Dynamic Smart Shuffle**:
-  - Har refresh aur "🔀 Shuffle Mix" tap karne par randomized seed queries aur Fisher-Yates array shuffling se naye gaane load hote hain.
-- ❤️ **Liked Songs Playlist**:
-  - 1-tap heart button jo user ke favorited tracks ko save karke alag dedicated playlist banata hai.
-- 🔍 **API Inspector Modal**:
-  - Har track ka live JSON data inspect karein taaki ise Android app (ExoPlayer) me add karna asaan ho.
+*(Note: In accordance with project architecture, the video player system is exclusive to the mobile app and is omitted from the web player).*
 
 ---
 
-## 🚀 How to Deploy on Render.com (100% Free)
+## ✨ Features
 
-Ye project **Render.com** ke liye completely pre-configured hai (includes `render.yaml` Blueprint).
+### 🎨 1. Fluid Dynamic Design System
+- **Liquid Glass UI & Frosted Glass Surfaces**: Translucent floating cards with `backdrop-filter: blur(24px)`, subtle neon borders, glowing neon cyan (`#00F0FF`) and purple (`#8A2BE2`) highlights.
+- **3 Adaptive Performance & Visual Modes**:
+  - **🌊 Ultra Liquid (High)**: Procedural real-time animated neon fluid mesh background on HTML5 canvas with morphing luminous blobs and responsive auras.
+  - **⚖️ Balanced (Medium)**: Translucent glass surfaces, soft CSS gradients, and fluid micro-animations.
+  - **⚡ Performance (Low)**: Ultra-minimal flat dark AMOLED UI with zero canvas animations, engineered for battery saving.
+- **🖼️ App-Wide Custom Wallpaper Background**: Upload any high-res photo from your computer/device or enter an image URL with an automatic dark frosted scrim overlay.
 
-### Step-by-Step Deployment:
+### 🎧 2. Audio Engine & DSP Tuning
+- **Web Audio API 32-bit Pipeline**: Direct low-latency hardware-accelerated audio processing.
+- **🎚️ 6-Band Graphic Equalizer & Preamp**:
+  - Frequencies: 60Hz (Sub-Bass), 230Hz (Bass), 910Hz (Mid-range), 3.6kHz (Presence), 14kHz (Brilliance), plus Preamp Gain (-12dB to +12dB).
+  - Presets: Flat, Bass Boost, Vocal, Electronic, Rock, Pop.
+- **🎤 Karaoke Vocal Remover DSP**: Center-channel audio subtraction (L - R phase inversion) to attenuate lead vocals.
+- **🎛️ Real-Time DJ Crossfader**: Adjustable 0s to 12s smooth transition between ending and incoming tracks.
+- **✨ Active Track Spectrum Visualizer**: Live bouncing equalizer soundwaves on the mini player and full spectrum analyzer on the Now Playing sheet.
+- **⏩ Variable Playback Speed**: 0.75x, 1.0x, 1.25x, 1.5x, 2.0x.
 
-1. **GitHub par Repository Banayein**:
-   - Is `test-web` folder ke contents ko apne GitHub account par naye repo me push karein (e.g. `listen-x-web`).
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit of Listen-X Stream"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/listen-x-web.git
-   git push -u origin main
-   ```
+### 🎶 3. Music Discovery & Streaming Engine
+- **Direct 320kbps Audio Decryption**: Embedded pure JavaScript DES-ECB decryptor translating JioSaavn encrypted CDN URLs into high-fidelity 320kbps streams.
+- **Multi-Category Dynamic Catalog**:
+  - **Trending Hits**: Blends top trending tracks with your personalized music taste profile.
+  - **Haryanvi Blast**: Masoom Sharma, Gulzaar Chhaniwala, Renuka Panwar, Amit Saini Rohtakiya, KD Desi Rock, Diler Kharkiya, etc.
+  - **Punjabi Hits**: Sidhu Moosewala, Karan Aujla, Diljit Dosanjh, AP Dhillon, Shubh, etc.
+  - **Bollywood Chartbusters**: Arijit Singh, Shreya Ghoshal, Atif Aslam, Jubin Nautiyal, etc.
+  - **International Pop**: Taylor Swift, Ed Sheeran, The Weeknd, Dua Lipa, etc.
+  - **Midnight LoFi**: LoFi chill Hindi, acoustic, and aesthetic midnight mixes.
+- **Quick Artist Pills**: Horizontally scrollable singer tags for instant 1-tap discography search.
+- **🔀 In-Place Randomization Engine**: One-tap "Shuffle Order" button randomizes and rearranges the visible list in real time without stopping current playback.
+- **🔍 Real-Time Debounced Live Search**: Instant search as you type.
 
-2. **Render.com par Jayein**:
-   - [Render Dashboard](https://dashboard.render.com/) me login karein.
-   - Top right me **"New +"** par click karein aur **"Web Service"** choose karein.
+### 📜 4. Real-Time Synced Lyrics
+- **Synchronized LRC Support**: Connects to LRCLIB and JioSaavn official lyrics APIs.
+- **Interactive Lyric Lines**: Active singing line is highlighted with an enlarged cyan glow; clicking any lyric line seeks playback directly to that second!
+- **Auto-Scroll Engine**: Smoothly centers the currently sung line with intelligent user-scroll pause detection.
+- **One-Tap Lyrics Copy**: Copy raw plain lyrics directly to clipboard.
 
-3. **GitHub Repository Connect Karein**:
-   - Apne GitHub repo (`listen-x-web`) ko select karein aur **"Connect"** dabayein.
+### 💻 5. Laptop Streamer & Local Files
+- **Laptop D:\music Server**: Connects to `listenx_server.py` (`http://localhost:8080` or public Cloudflare tunnel) to browse and stream your PC collection anywhere.
+- **Offline Local Audio Ingestion**: Drag & drop or pick MP3, M4A, FLAC, and WAV files directly from your computer to play instantly offline.
 
-4. **Service Settings Verify Karein**:
-   - Render automatically `render.yaml` detect kar lega. Agar manual set karna ho:
-     - **Name**: `listen-x-stream`
-     - **Region**: Singapore ya Frankfurt (or nearest)
-     - **Branch**: `main`
-     - **Runtime**: `Node`
-     - **Build Command**: `npm install` *(kuch install nahi hota, 2 second me build hoga)*
-     - **Start Command**: `npm start` *(or `node server.js`)*
-     - **Instance Type**: `Free`
-
-5. **Deploy Karein**:
-   - **"Create Web Service"** par click karein.
-   - 1 minute ke andar Render aapko ek live HTTPS link de dega:
-     👉 **`https://listen-x-stream.onrender.com`**
+### 📁 6. Playlists & Library Management
+- **Liked Songs / Favorites**: One-click hearting saved to persistent `localStorage`.
+- **Custom Playlists**: Create, name, organize, and delete personalized playlists.
+- **Listening History**: Tracks recently played songs with timestamps.
+- **Instant Audio Downloader**: Download any 320kbps song directly as an audio file with proper metadata filename.
 
 ---
 
-## 💻 Run Locally (Local Machine par Kaise Chalayein)
+## 🚀 Running the Web Player
 
-### Prerequisites:
-- Node.js (v18 ya v20+) installed hona chahiye.
+### Method A: Built-in Python Server (Recommended)
+`listenx_server.py` now automatically hosts `listen-web` on port 8080!
+```bash
+python listenx_server.py
+```
+Open your browser to:
+👉 **`http://localhost:8080`**
 
-### Quick Start:
-1. Terminal me folder open karein:
-   ```bash
-   cd test-web
-   npm start
-   ```
-   *(Windows user simply `start_test_web.bat` par double-click kar sakte hain).*
+### Method B: Vite Modern Dev Server
+```bash
+cd listen-web
+npm install
+npm run dev
+```
+Open your browser to:
+👉 **`http://localhost:3000`**
 
-2. Browser me open karein:
-   ```
-   http://localhost:3000
-   ```
+### Method C: Any Static Web Server
+```bash
+cd listen-web
+python -m http.server 5500
+```
+Open your browser to:
+👉 **`http://localhost:5500`**
 
 ---
 
 ## 📂 Project Structure
 
 ```
-listen-x-web/
-├── public/
-│   ├── index.html        # Futuristic Glassmorphic UI & Modals
-│   ├── style.css         # Neon Cyan Cyberpunk Dark Glass Theme
-│   ├── app.js            # Core Player Engine, Taste Learner & Smart Radio
-│   └── _redirects        # Optional Netlify/Cloudflare route handler
-├── netlify/
-│   └── functions/
-│       └── api.js        # Optional Netlify Serverless adapter
-├── server.js             # High-Speed Standalone Node Server & DES Decryptor
-├── render.yaml           # Render.com Infrastructure Blueprint
-├── vercel.json           # Vercel Serverless Routing Config
-├── package.json          # Node Manifest & Start Script
-├── .gitignore            # Git exclusion rules
-├── start_test_web.bat    # 1-Click Windows Launcher
-└── README.md             # Project Documentation
+listen-web/
+├── index.html                   # HTML5 Entry Shell
+├── package.json                 # Node & Vite configuration
+├── vite.config.js               # Dev server & proxy settings
+├── README.md                    # Documentation
+├── assets/
+│   ├── favicon.svg              # Neon cyan/purple branding icon
+│   └── splash_banner.png        # High-resolution splash banner
+└── src/
+    ├── css/
+    │   └── style.css            # Liquid Glass Design System
+    └── js/
+        ├── app.js               # Application Controller & Navigation
+        ├── crypto/
+        │   └── des.js           # Pure JS DES-ECB 320kbps Decryptor
+        ├── services/
+        │   ├── api.js           # JioSaavn, LRCLIB & Server API
+        │   ├── audioPlayer.js   # Web Audio Engine & 6-Band EQ
+        │   ├── lrcParser.js     # Synchronized LRC Parser
+        │   └── storage.js       # LocalStorage State Persistence
+        └── components/
+            ├── liquidBackground.js # Canvas Animated Neon Fluid Mesh
+            ├── visualizer.js       # Real-time Spectrum Visualizer
+            ├── onlineView.js       # Search, Trending & Categories
+            ├── playlistView.js     # Playlists, Laptop & Local files
+            ├── nowPlayingSheet.js  # Floating Mini & Fullscreen Sheet
+            ├── equalizerModal.js   # 6-Band Graphic Equalizer Modal
+            └── settingsModal.js    # Graphics, Wallpaper & Preferences
 ```
-
----
-
-## 📱 Android Integration Note (Listen-X App)
-
-Is website me use hone wala JSON response direct Android me pass hota hai:
-```kotlin
-// Android ExoPlayer direct streaming:
-val mediaItem = MediaItem.fromUri(song.stream_url_320)
-exoPlayer.setMediaItem(mediaItem)
-exoPlayer.prepare()
-exoPlayer.play()
-```
-
----
-
-## 📜 License
-MIT License © Listen-X Team
