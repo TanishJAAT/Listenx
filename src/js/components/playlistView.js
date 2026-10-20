@@ -84,26 +84,6 @@ export class PlaylistView {
               </div>
               <button class="system-card-play-btn" title="Play All"><i class="fa-solid fa-play"></i></button>
             </div>
-
-            <!-- Laptop D:\music Server -->
-            <div class="system-card laptop-card" id="cardLaptop">
-              <div class="system-card-icon"><i class="fa-solid fa-laptop"></i></div>
-              <div class="system-card-info">
-                <h3>Laptop D:\\music</h3>
-                <span id="laptopBadge">Connect to server</span>
-              </div>
-              <button class="system-card-play-btn" title="Stream"><i class="fa-solid fa-satellite-dish"></i></button>
-            </div>
-
-            <!-- Local Computer Files -->
-            <div class="system-card local-card" id="cardLocalFiles">
-              <div class="system-card-icon"><i class="fa-solid fa-folder-open"></i></div>
-              <div class="system-card-info">
-                <h3>Local Computer Audio</h3>
-                <span id="localFilesBadge">Play offline MP3s</span>
-              </div>
-              <button class="system-card-play-btn" title="Browse"><i class="fa-solid fa-file-audio"></i></button>
-            </div>
           </div>
 
           <!-- Custom User Playlists Section -->
@@ -113,9 +93,6 @@ export class PlaylistView {
           </div>
         </div>
       </div>
-
-      <!-- Hidden Local Audio File Input -->
-      <input type="file" id="localAudioFileInput" multiple accept="audio/*" class="hidden" />
     `;
   }
 
@@ -123,15 +100,6 @@ export class PlaylistView {
     // System Cards
     document.getElementById('cardLikedSongs').addEventListener('click', () => this.openSubView('liked'));
     document.getElementById('cardHistory').addEventListener('click', () => this.openSubView('history'));
-    document.getElementById('cardLaptop').addEventListener('click', () => this.openSubView('laptop'));
-    document.getElementById('cardLocalFiles').addEventListener('click', () => {
-      document.getElementById('localAudioFileInput').click();
-    });
-
-    // Local file input
-    document.getElementById('localAudioFileInput').addEventListener('change', (e) => {
-      this.handleLocalFiles(e.target.files);
-    });
 
     // Subview Back Button
     document.getElementById('subviewBackBtn').addEventListener('click', () => this.closeSubView());

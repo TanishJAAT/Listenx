@@ -104,7 +104,7 @@ class ApiService {
   }
 
   /**
-   * Searches songs via JioSaavn search.getResults API.
+   * Searches songs via backend /api/search or fallback JioSaavn API.
    */
   async searchSongs(query, limit = 30, page = 1) {
     const trimmed = query.trim();
@@ -115,6 +115,21 @@ class ApiService {
       return this.memoryCache.get(cacheKey);
     }
 
+    // 1. Try local backend server first (ultra-fast, zero CORS issues on Render)
+    try {
+      const resp = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&limit=${limit}&page=${page}`);
+      if (resp.ok) {
+        const songs = await resp.json();
+        if (Array.isArray(songs) && songs.length > 0) {
+          this.memoryCache.set(cacheKey, songs);
+          return songs;
+        }
+      }
+    } catch (e) {
+      // Backend /api/search unavailable, proceed to client fallback
+    }
+
+    // 2. Direct / Proxy Fallback
     try {
       const encodedQuery = encodeURIComponent(trimmed);
       const url = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&n=${limit}&p=${page}&q=${encodedQuery}`;
@@ -142,6 +157,18 @@ class ApiService {
    * Dynamic Catalog pools matching the Android app's OnlineMusicRepository.kt
    */
   async getTrendingSongs(genre = 'Trending', page = 1, refreshSeed = 0) {
+    // 1. Try backend server first (ultra-fast server-to-server fetch)
+    try {
+      const resp = await fetch(`/api/trending?genre=${encodeURIComponent(genre)}&page=${page}&seed=${refreshSeed}`);
+      if (resp.ok) {
+        const songs = await resp.json();
+        if (Array.isArray(songs) && songs.length > 0) {
+          return songs;
+        }
+      }
+    } catch (e) {
+      // Backend endpoint unavailable, proceed to client-side catalog
+    }
     const haryanviCatalog = [
       'masoom sharma hits', 'gulzaar chhaniwala hits', 'renuka panwar hits',
       'amit saini rohtakiya hits', 'kd desi rock songs', 'diler kharkiya hits',

@@ -69,38 +69,6 @@ export class OnlineView {
           </div>
         </div>
 
-        <!-- Quick Action Shortcuts -->
-        <div class="quick-shortcuts-row">
-          <div class="shortcut-card" id="shortcutLiked">
-            <div class="shortcut-icon heart-glow"><i class="fa-solid fa-heart"></i></div>
-            <div class="shortcut-meta">
-              <span class="shortcut-title">Liked Songs</span>
-              <small class="shortcut-sub" id="shortcutLikedCount">0 tracks</small>
-            </div>
-          </div>
-          <div class="shortcut-card" id="shortcutHistory">
-            <div class="shortcut-icon history-glow"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <div class="shortcut-meta">
-              <span class="shortcut-title">Recent History</span>
-              <small class="shortcut-sub">Played tracks</small>
-            </div>
-          </div>
-          <div class="shortcut-card" id="shortcutLaptop">
-            <div class="shortcut-icon laptop-glow"><i class="fa-solid fa-laptop"></i></div>
-            <div class="shortcut-meta">
-              <span class="shortcut-title">Laptop Stream</span>
-              <small class="shortcut-sub">D:\\music Library</small>
-            </div>
-          </div>
-          <div class="shortcut-card" id="shortcutLocal">
-            <div class="shortcut-icon local-glow"><i class="fa-solid fa-folder-open"></i></div>
-            <div class="shortcut-meta">
-              <span class="shortcut-title">Pick Local Files</span>
-              <small class="shortcut-sub">From your computer</small>
-            </div>
-          </div>
-        </div>
-
         <!-- Category Filter Pills -->
         <div class="categories-row">
           <button class="category-pill active" data-cat="Trending"><i class="fa-solid fa-fire"></i> Trending</button>
@@ -226,22 +194,7 @@ export class OnlineView {
       }
     });
 
-    // Shortcuts
-    document.getElementById('shortcutLiked').addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('nav-tab-change', { detail: { tab: 'playlists', sub: 'liked' } }));
-    });
-    document.getElementById('shortcutHistory').addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('nav-tab-change', { detail: { tab: 'playlists', sub: 'history' } }));
-    });
-    document.getElementById('shortcutLaptop').addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('nav-tab-change', { detail: { tab: 'playlists', sub: 'laptop' } }));
-    });
-    document.getElementById('shortcutLocal').addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('nav-tab-change', { detail: { tab: 'playlists', sub: 'local' } }));
-    });
-
     // Listen to favorite & player state changes
-    window.addEventListener('favorites-changed', () => this._updateShortcutCounts());
     player.subscribe((event) => {
       if (event === 'songChanged' || event === 'playStateChanged') {
         this._highlightActiveSong();
@@ -249,13 +202,6 @@ export class OnlineView {
     });
 
     this._renderArtistPicks();
-    this._updateShortcutCounts();
-  }
-
-  _updateShortcutCounts() {
-    const favCount = storage.getFavorites().length;
-    const el = document.getElementById('shortcutLikedCount');
-    if (el) el.textContent = `${favCount} tracks`;
   }
 
   _renderArtistPicks() {
@@ -386,7 +332,7 @@ export class OnlineView {
       // Play song when clicking card
       card.addEventListener('click', (e) => {
         if (e.target.closest('button')) return;
-        player.setQueue(this.songs, idx);
+        player.playSong(song);
       });
 
       card.querySelector('.card-play-btn').addEventListener('click', (e) => {
@@ -394,7 +340,7 @@ export class OnlineView {
         if (isPlayingCurrent) {
           player.togglePlay();
         } else {
-          player.setQueue(this.songs, idx);
+          player.playSong(song);
         }
       });
 
@@ -405,7 +351,6 @@ export class OnlineView {
         const nowFav = storage.toggleFavorite(song);
         favBtn.classList.toggle('active-heart', nowFav);
         favBtn.innerHTML = `<i class="fa-${nowFav ? 'solid' : 'regular'} fa-heart"></i>`;
-        this._updateShortcutCounts();
         window.dispatchEvent(new CustomEvent('favorites-changed'));
       });
 

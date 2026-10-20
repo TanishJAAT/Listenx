@@ -23,6 +23,7 @@ class App {
 
     // 2. Initialize Now Playing Sheet & Mini Player
     this.nowPlaying = new NowPlayingSheet();
+    player.clearQueue(); // Ensure queue starts completely clean on launch
 
     // 3. Initialize Equalizer & Settings Modals
     this.equalizerModal = new EqualizerModal();

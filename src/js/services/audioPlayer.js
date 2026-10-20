@@ -224,6 +224,15 @@ class AudioPlayerService {
   }
 
   // --- Queue Operations ---
+  playSong(song) {
+    if (!song) return;
+    this.queue = [song];
+    this.currentIndex = 0;
+    this._isCrossfadingTriggered = false;
+    this.playCurrentTrack();
+    this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
+  }
+
   setQueue(songs, startIndex = 0) {
     if (!songs || songs.length === 0) return;
     this.queue = [...songs];
