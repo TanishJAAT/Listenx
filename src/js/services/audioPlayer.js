@@ -2,15 +2,20 @@
  * High-Performance Web Audio Player Engine for Listen-X.
  * Features:
  * - HTML5 Audio + Web Audio API pipeline
- * - 6-Band Graphic Equalizer (60Hz, 230Hz, 910Hz, 3.6kHz, 14kHz + Preamp)
- * - Vocal Remover / Karaoke DSP (Stereo center-cancellation: L - R)
- * - DJ Crossfader (Smooth 0s to 12s transitions between tracks)
- * - Real-time Audio Analyser (for live visualizer wave & EQ bars)
- * - Full Queue Management, Shuffle, and Loop modes (OFF, ALL, ONE)
- * - Media Session API (OS Lockscreen & keyboard media keys)
+ * - Dynamic Smart Crossfade: Fixed 4-second continuous gapless crossfading
+ * - Pre-transition Trimming: Skips ~3.5s intro & ~3.5s outro silences safely
+ * - Instant Song Selection with Smooth 4s Crossfade
+ * - Pre-buffers upcoming 2–3 songs in advance
+ * - Intelligent Autoplay: Never stops when queue is exhausted, continuously streams
+ *   recommendations tailored to the feed, artist, and user taste.
+ * - 6-Band Graphic Equalizer & Preamp
+ * - Karaoke Vocal Remover DSP
+ * - Real-time Audio Analyser
+ * - Media Session API for keyboard & OS lockscreen
  */
 
 import { storage } from './storage.js';
+import { api } from './api.js';
 
 export const LOOP_MODES = {
   OFF: 'OFF',
@@ -27,6 +32,29 @@ export const EQ_PRESETS = {
   'Pop': [2, 4, 3, 2, 1, 0]
 };
 
+// Smart transition & trimming constants
+export const SMART_INTRO_SKIP = 3.5;       // seconds trimmed at start
+export const SMART_OUTRO_SKIP = 3.5;       // seconds trimmed at end
+export const FIXED_CROSSFADE_DURATION = 4.0; // fixed 4s crossfade for continuous flow
+
+export function getSafeIntroTrim(durationSec) {
+  if (!durationSec || durationSec <= 0) return SMART_INTRO_SKIP;
+  if (durationSec < 20) return Math.min(SMART_INTRO_SKIP, durationSec * 0.08);
+  return SMART_INTRO_SKIP;
+}
+
+export function getSafeOutroTrim(durationSec) {
+  if (!durationSec || durationSec <= 0) return SMART_OUTRO_SKIP;
+  if (durationSec < 20) return Math.min(SMART_OUTRO_SKIP, durationSec * 0.08);
+  return SMART_OUTRO_SKIP;
+}
+
+export function getSafeCrossfadeTime(durationSec) {
+  if (!durationSec || durationSec <= 0) return FIXED_CROSSFADE_DURATION;
+  if (durationSec < 15) return Math.min(FIXED_CROSSFADE_DURATION, durationSec * 0.2);
+  return FIXED_CROSSFADE_DURATION;
+}
+
 class AudioPlayerService {
   constructor() {
     this.queue = [];
@@ -35,9 +63,10 @@ class AudioPlayerService {
     this.loopMode = LOOP_MODES.OFF;
     this.isShuffle = false;
     this.playbackSpeed = 1.0;
-    this.crossfadeDuration = 3; // seconds
+    this.crossfadeDuration = 3; // Saved user preference (remains unchanged in settings)
     this.isVocalRemoverEnabled = false;
 
+    // Dual audio elements for gapless crossfading
     this.audioA = new Audio();
     this.audioB = new Audio();
     this.activeAudio = this.audioA;
@@ -53,6 +82,23 @@ class AudioPlayerService {
     this.vocalRemoverNodes = null;
     this.gainA = null;
     this.gainB = null;
+
+    // Intelligent Autoplay & Preparation State
+    this.feedSongs = [];
+    this.autoplayPool = [];
+    this.recentlyPlayedIds = new Set();
+    this.preloadedNextSong = null;
+    this.isCrossfading = false;
+    this._isCrossfadingTriggered = false;
+    this.isRefillingPool = false;
+
+    // Load recent history IDs to avoid repeating songs
+    const hist = storage.getHistory();
+    if (Array.isArray(hist)) {
+      hist.slice(0, 40).forEach(s => {
+        if (s && s.id) this.recentlyPlayedIds.add(s.id);
+      });
+    }
 
     this.listeners = new Set();
     this._initAudioElements();
@@ -70,7 +116,7 @@ class AudioPlayerService {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       this.audioCtx = new AudioContext();
 
-      // Analyser for visualizer
+      // Analyser for real-time visualizer
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 128;
       this.analyser.smoothingTimeConstant = 0.8;
@@ -131,7 +177,7 @@ class AudioPlayerService {
         this.setEqualizerGains(saved.eqGains);
       }
     } catch (e) {
-      console.warn('Web Audio API not fully available or restricted by user gesture:', e);
+      console.warn('Web Audio API initialized with limited context:', e);
     }
   }
 
@@ -145,7 +191,7 @@ class AudioPlayerService {
       });
 
       audio.addEventListener('pause', () => {
-        if (audio === this.activeAudio) {
+        if (audio === this.activeAudio && !this.isCrossfading) {
           this.isPlaying = false;
           this._emit('playStateChanged', { isPlaying: false });
         }
@@ -161,18 +207,22 @@ class AudioPlayerService {
             progress: duration > 0 ? (current / duration) : 0
           });
 
-          // Check if crossfade should trigger near track end
-          if (this.crossfadeDuration > 0 && duration > 10 && current >= (duration - this.crossfadeDuration - 0.5)) {
-            if (!this._isCrossfadingTriggered && this.hasNext()) {
+          // Smart continuous crossfade & outro trimming trigger
+          if (duration > 10 && !this._isCrossfadingTriggered && !this.isCrossfading) {
+            const safeOutro = getSafeOutroTrim(duration);
+            const fadeDuration = getSafeCrossfadeTime(duration);
+            const triggerPoint = duration - safeOutro - fadeDuration;
+
+            if (current >= triggerPoint) {
               this._isCrossfadingTriggered = true;
-              this.playNextWithCrossfade();
+              this.transitionToNextTrack();
             }
           }
         }
       });
 
       audio.addEventListener('ended', () => {
-        if (audio === this.activeAudio && !this._isCrossfadingTriggered) {
+        if (audio === this.activeAudio && !this.isCrossfading) {
           this.onTrackEnded();
         }
       });
@@ -180,7 +230,8 @@ class AudioPlayerService {
       audio.addEventListener('error', (e) => {
         if (audio === this.activeAudio) {
           console.error('Audio playback error:', e);
-          this._emit('error', { message: 'Failed to play track' });
+          // Try recovering via next track
+          setTimeout(() => this.playNext(), 1000);
         }
       });
     };
@@ -223,34 +274,203 @@ class AudioPlayerService {
     });
   }
 
-  // --- Queue Operations ---
-  playSong(song) {
+  // --- Feed & Candidate Management ---
+  setFeedSongs(songs) {
+    if (!Array.isArray(songs) || songs.length === 0) return;
+    this.feedSongs = [...songs];
+    for (let s of songs) {
+      if (!this.recentlyPlayedIds.has(s.id) && !this.autoplayPool.some(p => p.id === s.id)) {
+        this.autoplayPool.push(s);
+      }
+    }
+    this.prepareUpcomingSongs();
+  }
+
+  /**
+   * Pre-loads the next 2-3 songs in advance into the candidate buffer
+   * and pre-buffers the immediate next track in the inactive audio element.
+   */
+  prepareUpcomingSongs() {
+    const upcoming = [];
+
+    // 1. Prioritize songs in queue
+    if (this.currentIndex < this.queue.length - 1) {
+      for (let i = this.currentIndex + 1; i < Math.min(this.queue.length, this.currentIndex + 4); i++) {
+        upcoming.push(this.queue[i]);
+      }
+    }
+
+    // 2. Supplement up to 3 songs from autoplay pool / feed
+    let poolIdx = 0;
+    while (upcoming.length < 3 && poolIdx < this.autoplayPool.length) {
+      const cand = this.autoplayPool[poolIdx++];
+      if (!this.recentlyPlayedIds.has(cand.id) && !upcoming.some(u => u.id === cand.id)) {
+        upcoming.push(cand);
+      }
+    }
+
+    // 3. Pre-buffer the immediate upcoming song in inactiveAudio
+    if (upcoming.length > 0) {
+      const nextSong = upcoming[0];
+      if (nextSong && nextSong.streamUrl && !this.isCrossfading) {
+        if (!this.preloadedNextSong || this.preloadedNextSong.id !== nextSong.id) {
+          this.preloadedNextSong = nextSong;
+          try {
+            this.inactiveAudio.src = nextSong.streamUrl;
+            this.inactiveAudio.preload = 'auto';
+            this.inactiveAudio.load();
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Refill candidate pool in background if low
+    if (this.autoplayPool.length < 6) {
+      this._refillAutoplayPool();
+    }
+  }
+
+  /**
+   * Intelligently refills autoplay pool based on current artist, active feed, or user taste.
+   */
+  async _refillAutoplayPool() {
+    if (this.isRefillingPool) return;
+    this.isRefillingPool = true;
+
+    try {
+      const current = this.getCurrentSong();
+      let query = '';
+
+      if (current && current.artist) {
+        const cleanArtist = current.artist.split(/[,&/]/)[0].trim();
+        if (cleanArtist && !cleanArtist.toLowerCase().includes('unknown')) {
+          query = `${cleanArtist} hits`;
+        }
+      }
+
+      if (!query) {
+        const taste = storage.getSettings().musicTaste || {};
+        if (taste.singers && taste.singers.length > 0) {
+          const randomSinger = taste.singers[Math.floor(Math.random() * taste.singers.length)];
+          query = `${randomSinger} top hits`;
+        } else {
+          query = 'trending songs 2026';
+        }
+      }
+
+      const results = await api.searchSongs(query, 25, 1);
+      if (Array.isArray(results) && results.length > 0) {
+        for (let s of results) {
+          if (!this.recentlyPlayedIds.has(s.id) && !this.autoplayPool.some(p => p.id === s.id)) {
+            this.autoplayPool.push(s);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Autoplay pool refill notice:', e);
+    } finally {
+      this.isRefillingPool = false;
+    }
+  }
+
+  /**
+   * Retrieves the next best unplayed song for intelligent autoplay.
+   */
+  getNextAutoplaySong() {
+    // 1. Pick from candidate pool
+    while (this.autoplayPool.length > 0) {
+      const candidate = this.autoplayPool.shift();
+      if (!this.recentlyPlayedIds.has(candidate.id)) {
+        this.recentlyPlayedIds.add(candidate.id);
+        if (this.autoplayPool.length < 5) this._refillAutoplayPool();
+        return candidate;
+      }
+    }
+
+    // 2. Pick from active feed songs
+    if (this.feedSongs && this.feedSongs.length > 0) {
+      const unplayed = this.feedSongs.filter(s => !this.recentlyPlayedIds.has(s.id));
+      if (unplayed.length > 0) {
+        const picked = unplayed[0];
+        this.recentlyPlayedIds.add(picked.id);
+        if (this.autoplayPool.length < 5) this._refillAutoplayPool();
+        return picked;
+      }
+      // If all feed songs played, clear session tracker (keep current)
+      const current = this.getCurrentSong();
+      this.recentlyPlayedIds.clear();
+      if (current) this.recentlyPlayedIds.add(current.id);
+      return this.feedSongs[0];
+    }
+
+    // 3. Fallback to Liked Songs
+    const favs = storage.getFavorites();
+    if (favs && favs.length > 0) {
+      const unplayedFav = favs.find(s => !this.recentlyPlayedIds.has(s.id)) || favs[0];
+      this.recentlyPlayedIds.add(unplayedFav.id);
+      return unplayedFav;
+    }
+
+    return null;
+  }
+
+  // --- Playback & Smart Crossfade Engine ---
+
+  /**
+   * Plays a single track.
+   * If a song is currently playing, crossfades smoothly over fixed 4s starting at ~3.5s!
+   * If cold start, fades in smoothly from ~3.5s.
+   */
+  async playSong(song) {
     if (!song) return;
+
+    // If already playing audio, execute smooth 4-second smart crossfade!
+    if (this.isPlaying && this.getCurrentSong() && this.activeAudio && !this.activeAudio.paused) {
+      this.queue = [song];
+      this.currentIndex = 0;
+      this._emit('queueChanged', { queue: this.queue, currentIndex: 0 });
+      await this._performSmartCrossfade(song, 0);
+      return;
+    }
+
+    // Cold start / manual play from stopped state
     this.queue = [song];
     this.currentIndex = 0;
     this._isCrossfadingTriggered = false;
-    this.playCurrentTrack();
-    this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
+    this._emit('queueChanged', { queue: this.queue, currentIndex: 0 });
+    await this.playCurrentTrack(true);
   }
 
   setQueue(songs, startIndex = 0) {
     if (!songs || songs.length === 0) return;
+    const targetSong = songs[Math.max(0, Math.min(startIndex, songs.length - 1))];
+
+    if (this.isPlaying && this.getCurrentSong() && this.activeAudio && !this.activeAudio.paused) {
+      this.queue = [...songs];
+      this.currentIndex = startIndex;
+      this._emit('queueChanged', { queue: this.queue, currentIndex: startIndex });
+      this._performSmartCrossfade(targetSong, startIndex);
+      return;
+    }
+
     this.queue = [...songs];
     this.currentIndex = Math.max(0, Math.min(startIndex, this.queue.length - 1));
     this._isCrossfadingTriggered = false;
-    this.playCurrentTrack();
     this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
+    this.playCurrentTrack(true);
   }
 
   addToQueue(song) {
     if (!song) return;
     this.queue.push(song);
+    this.prepareUpcomingSongs();
     this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
   }
 
   playNextInQueue(song) {
     if (!song) return;
     this.queue.splice(this.currentIndex + 1, 0, song);
+    this.prepareUpcomingSongs();
     this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
   }
 
@@ -264,9 +484,10 @@ class AudioPlayerService {
         this.currentIndex = Math.min(this.currentIndex, this.queue.length - 1);
         this.playCurrentTrack();
       } else {
-        this.stop();
+        this.transitionToNextTrack();
       }
     }
+    this.prepareUpcomingSongs();
     this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
   }
 
@@ -274,6 +495,7 @@ class AudioPlayerService {
     this.stop();
     this.queue = [];
     this.currentIndex = -1;
+    this.recentlyPlayedIds.clear();
     this._emit('queueChanged', { queue: [], currentIndex: -1 });
   }
 
@@ -282,7 +504,6 @@ class AudioPlayerService {
     const current = this.getCurrentSong();
     const remaining = this.queue.filter((_, idx) => idx !== this.currentIndex);
 
-    // Fisher-Yates shuffle
     for (let i = remaining.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
@@ -295,10 +516,10 @@ class AudioPlayerService {
       this.queue = remaining;
       this.currentIndex = 0;
     }
+    this.prepareUpcomingSongs();
     this._emit('queueChanged', { queue: this.queue, currentIndex: this.currentIndex });
   }
 
-  // --- Playback Controls ---
   getCurrentSong() {
     if (this.currentIndex >= 0 && this.currentIndex < this.queue.length) {
       return this.queue[this.currentIndex];
@@ -306,42 +527,175 @@ class AudioPlayerService {
     return null;
   }
 
-  async playCurrentTrack() {
+  /**
+   * Cold-starts current track with ~3.5s intro trimming and smooth fade-in.
+   */
+  async playCurrentTrack(shouldTrimIntro = true) {
     this._ensureAudioContext();
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
       try { await this.audioCtx.resume(); } catch {}
     }
 
     const song = this.getCurrentSong();
-    if (!song) return;
+    if (!song || !song.streamUrl) return;
 
     this._isCrossfadingTriggered = false;
-    const url = song.streamUrl;
-    if (!url) return;
-
-    this.activeAudio.src = url;
+    this.isCrossfading = false;
+    this.activeAudio.src = song.streamUrl;
     this.activeAudio.playbackRate = this.playbackSpeed;
 
+    const durationSec = (song.durationMs || 0) / 1000;
+    const safeIntro = shouldTrimIntro ? getSafeIntroTrim(durationSec) : 0;
+
     // Reset gain values
-    if (this.gainA && this.gainB) {
-      if (this.activeAudio === this.audioA) {
-        this.gainA.gain.value = 1.0;
-        this.gainB.gain.value = 0.0;
-      } else {
-        this.gainA.gain.value = 0.0;
-        this.gainB.gain.value = 1.0;
-      }
+    const activeGain = this.activeAudio === this.audioA ? this.gainA : this.gainB;
+    const inactiveGain = this.activeAudio === this.audioA ? this.gainB : this.gainA;
+
+    if (activeGain && inactiveGain && this.audioCtx) {
+      const now = this.audioCtx.currentTime;
+      activeGain.gain.setValueAtTime(0.0, now);
+      activeGain.gain.linearRampToValueAtTime(1.0, now + 0.4);
+      inactiveGain.gain.setValueAtTime(0.0, now);
     }
 
     try {
+      this.activeAudio.currentTime = safeIntro;
       await this.activeAudio.play();
       this.isPlaying = true;
+      this.recentlyPlayedIds.add(song.id);
       storage.addToHistory(song);
       this._updateMediaSession(song);
       this._emit('songChanged', { song, index: this.currentIndex });
       this._emit('playStateChanged', { isPlaying: true });
+      this.prepareUpcomingSongs();
     } catch (e) {
-      console.warn('Playback initiation error:', e);
+      console.warn('Playback error:', e);
+    }
+  }
+
+  /**
+   * Core Smart Crossfade Engine:
+   * - Fixed 4.0-second seamless equal-power/linear crossfade
+   * - Pre-trimmed: incoming track starts at safeIntro (~3.5s)
+   * - Outgoing track fades to 0 over 4s and cuts outro silence
+   */
+  async _performSmartCrossfade(incomingSong, targetIndex) {
+    if (!incomingSong || !incomingSong.streamUrl) return;
+
+    this._ensureAudioContext();
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      try { await this.audioCtx.resume(); } catch {}
+    }
+
+    this.isCrossfading = true;
+    this._isCrossfadingTriggered = false;
+
+    const outgoingAudio = this.activeAudio;
+    const incomingAudio = this.inactiveAudio;
+    const outgoingGain = outgoingAudio === this.audioA ? this.gainA : this.gainB;
+    const incomingGain = incomingAudio === this.audioA ? this.gainA : this.gainB;
+
+    // Prepare incoming audio element
+    if (incomingAudio.src !== incomingSong.streamUrl) {
+      incomingAudio.src = incomingSong.streamUrl;
+    }
+    incomingAudio.playbackRate = this.playbackSpeed;
+
+    const durationSec = (incomingSong.durationMs || 0) / 1000;
+    const safeIntro = getSafeIntroTrim(durationSec);
+
+    const fadeDuration = FIXED_CROSSFADE_DURATION; // Always fixed 4 seconds
+    const now = this.audioCtx ? this.audioCtx.currentTime : 0;
+
+    if (this.audioCtx && outgoingGain && incomingGain) {
+      outgoingGain.gain.cancelScheduledValues(now);
+      incomingGain.gain.cancelScheduledValues(now);
+
+      outgoingGain.gain.setValueAtTime(outgoingGain.gain.value, now);
+      outgoingGain.gain.linearRampToValueAtTime(0.0, now + fadeDuration);
+
+      incomingGain.gain.setValueAtTime(0.0, now);
+      incomingGain.gain.linearRampToValueAtTime(1.0, now + fadeDuration);
+    }
+
+    try {
+      incomingAudio.currentTime = safeIntro;
+      await incomingAudio.play();
+    } catch (err) {
+      console.warn('Crossfade playback start note:', err);
+    }
+
+    // Switch active pointers immediately so UI updates instantly
+    this.activeAudio = incomingAudio;
+    this.inactiveAudio = outgoingAudio;
+    this.currentIndex = targetIndex;
+    this.isPlaying = true;
+
+    this.recentlyPlayedIds.add(incomingSong.id);
+    storage.addToHistory(incomingSong);
+    this._updateMediaSession(incomingSong);
+    this._emit('songChanged', { song: incomingSong, index: this.currentIndex });
+    this._emit('playStateChanged', { isPlaying: true });
+
+    // Prepare upcoming songs in the background
+    this.prepareUpcomingSongs();
+
+    // Clean up outgoing audio once fade completes
+    setTimeout(() => {
+      try {
+        outgoingAudio.pause();
+        outgoingAudio.currentTime = 0;
+      } catch {}
+      this.isCrossfading = false;
+    }, (fadeDuration + 0.15) * 1000);
+  }
+
+  /**
+   * Seamless continuous transition to next track.
+   * If queue has a song, plays next in queue.
+   * If queue is empty/exhausted, calls Intelligent Autoplay!
+   */
+  async transitionToNextTrack() {
+    // 1. Loop One Mode
+    if (this.loopMode === LOOP_MODES.ONE) {
+      const song = this.getCurrentSong();
+      if (song) {
+        await this._performSmartCrossfade(song, this.currentIndex);
+        return;
+      }
+    }
+
+    // 2. Next track in Queue
+    if (this.currentIndex < this.queue.length - 1) {
+      const nextIndex = this.currentIndex + 1;
+      const nextSong = this.queue[nextIndex];
+      await this._performSmartCrossfade(nextSong, nextIndex);
+      return;
+    }
+
+    // 3. Loop All Mode
+    if (this.loopMode === LOOP_MODES.ALL && this.queue.length > 0) {
+      await this._performSmartCrossfade(this.queue[0], 0);
+      return;
+    }
+
+    // 4. Intelligent Autoplay (Queue exhausted -> Never stop playing!)
+    const autoplaySong = this.getNextAutoplaySong();
+    if (autoplaySong) {
+      this.queue.push(autoplaySong);
+      const targetIndex = this.queue.length - 1;
+      this._emit('queueChanged', { queue: this.queue, currentIndex: targetIndex });
+      await this._performSmartCrossfade(autoplaySong, targetIndex);
+    } else {
+      // Re-trigger refill and retry
+      await this._refillAutoplayPool();
+      const retrySong = this.getNextAutoplaySong();
+      if (retrySong) {
+        this.queue.push(retrySong);
+        const targetIndex = this.queue.length - 1;
+        this._emit('queueChanged', { queue: this.queue, currentIndex: targetIndex });
+        await this._performSmartCrossfade(retrySong, targetIndex);
+      }
     }
   }
 
@@ -350,10 +704,13 @@ class AudioPlayerService {
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
       try { this.audioCtx.resume(); } catch {}
     }
-    if (!this.getCurrentSong() && this.queue.length > 0) {
-      this.currentIndex = 0;
-      this.playCurrentTrack();
-      return;
+    if (!this.getCurrentSong()) {
+      // If queue is empty, trigger autoplay to start continuous music!
+      const song = this.getNextAutoplaySong();
+      if (song) {
+        this.playSong(song);
+        return;
+      }
     }
     this.activeAudio.play().catch(e => console.warn('Play failed:', e));
   }
@@ -413,117 +770,49 @@ class AudioPlayerService {
 
   hasNext() {
     if (this.loopMode === LOOP_MODES.ALL) return true;
-    return this.currentIndex < this.queue.length - 1;
+    if (this.currentIndex < this.queue.length - 1) return true;
+    // With Intelligent Autoplay, there is ALWAYS a next track available!
+    return this.autoplayPool.length > 0 || this.feedSongs.length > 0;
   }
 
   playNext() {
-    if (this.queue.length === 0) return;
-    if (this.loopMode === LOOP_MODES.ONE) {
-      this.seek(0);
-      this.play();
-      return;
-    }
-
-    if (this.currentIndex < this.queue.length - 1) {
-      this.currentIndex++;
-    } else if (this.loopMode === LOOP_MODES.ALL) {
-      this.currentIndex = 0;
-    } else {
-      return;
-    }
-
-    this.playCurrentTrack();
+    this.transitionToNextTrack();
   }
 
   playPrevious() {
     if (this.queue.length === 0) return;
-    // If track is already played > 3 seconds, restart current track
-    if (this.activeAudio.currentTime > 3) {
-      this.seek(0);
+    const current = this.activeAudio.currentTime;
+    // If track is past 4 seconds, rewind to intro trim
+    if (current > 4) {
+      const dur = this.activeAudio.duration || 0;
+      this.seek(getSafeIntroTrim(dur));
       return;
     }
 
     if (this.currentIndex > 0) {
-      this.currentIndex--;
-    } else if (this.loopMode === LOOP_MODES.ALL) {
-      this.currentIndex = this.queue.length - 1;
+      const prevIndex = this.currentIndex - 1;
+      this._performSmartCrossfade(this.queue[prevIndex], prevIndex);
+    } else if (this.loopMode === LOOP_MODES.ALL && this.queue.length > 1) {
+      const lastIndex = this.queue.length - 1;
+      this._performSmartCrossfade(this.queue[lastIndex], lastIndex);
     } else {
-      this.seek(0);
-      return;
+      this.seek(getSafeIntroTrim(this.activeAudio.duration || 0));
     }
-
-    this.playCurrentTrack();
   }
 
   onTrackEnded() {
     if (this.loopMode === LOOP_MODES.ONE) {
-      this.seek(0);
+      const dur = this.activeAudio.duration || 0;
+      this.seek(getSafeIntroTrim(dur));
       this.play();
-    } else if (this.hasNext()) {
-      this.playNext();
     } else {
-      this.isPlaying = false;
-      this._emit('playStateChanged', { isPlaying: false });
-    }
-  }
-
-  /**
-   * Real-time DJ Crossfade transition between tracks.
-   */
-  async playNextWithCrossfade() {
-    if (!this.hasNext() || this.crossfadeDuration <= 0 || !this.audioCtx) {
-      this.playNext();
-      return;
-    }
-
-    const nextIndex = (this.currentIndex + 1) % this.queue.length;
-    const nextSong = this.queue[nextIndex];
-    if (!nextSong || !nextSong.streamUrl) {
-      this.playNext();
-      return;
-    }
-
-    const outgoingAudio = this.activeAudio;
-    const incomingAudio = this.inactiveAudio;
-    const outgoingGain = outgoingAudio === this.audioA ? this.gainA : this.gainB;
-    const incomingGain = incomingAudio === this.audioA ? this.gainA : this.gainB;
-
-    incomingAudio.src = nextSong.streamUrl;
-    incomingAudio.playbackRate = this.playbackSpeed;
-
-    const fadeTime = this.crossfadeDuration;
-    const now = this.audioCtx.currentTime;
-
-    outgoingGain.gain.setValueAtTime(1.0, now);
-    outgoingGain.gain.linearRampToValueAtTime(0.0, now + fadeTime);
-
-    incomingGain.gain.setValueAtTime(0.0, now);
-    incomingGain.gain.linearRampToValueAtTime(1.0, now + fadeTime);
-
-    try {
-      await incomingAudio.play();
-      this.activeAudio = incomingAudio;
-      this.inactiveAudio = outgoingAudio;
-      this.currentIndex = nextIndex;
-
-      storage.addToHistory(nextSong);
-      this._updateMediaSession(nextSong);
-      this._emit('songChanged', { song: nextSong, index: this.currentIndex });
-
-      setTimeout(() => {
-        outgoingAudio.pause();
-        outgoingAudio.src = '';
-        this._isCrossfadingTriggered = false;
-      }, (fadeTime + 0.5) * 1000);
-    } catch (e) {
-      this.playNext();
+      this.transitionToNextTrack();
     }
   }
 
   // --- Equalizer & DSP ---
   setEqualizerGains(gains) {
     if (!this.eqFilters || this.eqFilters.length === 0) return;
-    // 5 filters + 1 preamp gain
     for (let i = 0; i < 5; i++) {
       if (this.eqFilters[i] && this.audioCtx) {
         const val = gains[i] || 0;
@@ -547,9 +836,7 @@ class AudioPlayerService {
   toggleVocalRemover() {
     this.isVocalRemoverEnabled = !this.isVocalRemoverEnabled;
     storage.saveSettings({ vocalRemover: this.isVocalRemoverEnabled });
-    // Invert phase on equalizer high-mids to simulate vocal attenuation
     if (this.isVocalRemoverEnabled) {
-      // Cut vocal frequencies (230Hz - 3.6kHz)
       this.eqFilters[1].gain.setValueAtTime(-10, this.audioCtx.currentTime);
       this.eqFilters[2].gain.setValueAtTime(-14, this.audioCtx.currentTime);
       this.eqFilters[3].gain.setValueAtTime(-8, this.audioCtx.currentTime);
@@ -561,7 +848,6 @@ class AudioPlayerService {
     return this.isVocalRemoverEnabled;
   }
 
-  // --- Visualizer Analyzer Data ---
   getFrequencyData(array) {
     if (this.analyser) {
       this.analyser.getByteFrequencyData(array);
@@ -570,7 +856,6 @@ class AudioPlayerService {
     }
   }
 
-  // --- Event Handling ---
   subscribe(fn) {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
@@ -588,12 +873,11 @@ class AudioPlayerService {
     this.audioA.src = '';
     this.audioB.src = '';
     this.isPlaying = false;
+    this.isCrossfading = false;
+    this._isCrossfadingTriggered = false;
     this._emit('playStateChanged', { isPlaying: false });
   }
 
-  /**
-   * Directly download track as MP3/MP4 with clean filename.
-   */
   async downloadSong(song) {
     if (!song || !song.streamUrl) return false;
     try {
@@ -601,7 +885,6 @@ class AudioPlayerService {
       const safeArtist = (song.artist || 'Listen-X').replace(/[/\\?%*:|"<>]/g, '');
       const filename = `${safeArtist} - ${safeTitle}.mp4`;
 
-      // Trigger browser download
       const a = document.createElement('a');
       a.href = song.streamUrl;
       a.download = filename;
@@ -611,7 +894,7 @@ class AudioPlayerService {
       document.body.removeChild(a);
       return true;
     } catch (e) {
-      console.error('Download failed:', e);
+      console.error('Download error:', e);
       return false;
     }
   }

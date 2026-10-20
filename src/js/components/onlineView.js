@@ -270,6 +270,7 @@ export class OnlineView {
     loadMoreBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Load More Songs';
 
     document.getElementById('sectionHeaderCount').textContent = `${this.songs.length} Songs`;
+    player.setFeedSongs(this.songs);
     this._renderSongsGrid();
   }
 
